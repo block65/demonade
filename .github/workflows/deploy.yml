@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  workflow_dispatch: {}
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: bazelbuild/setup-bazelisk@v1
+
+      - name: mount cache
+        uses: actions/cache@v2
+        with:
+          path: "~/.cache/bazel-disk-cache" # this should match .bazelrc
+          key: ${{ runner.os }}-bazel-disk-cache
+
+      - name: test
+        run: bazel test //...
+        env:
+          CI: true
+
+      - name: build
+        run: bazel build //...
+
+      - name: publish-setup
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+
+      - name: publish
+        run: bazel run //:pkg.publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
