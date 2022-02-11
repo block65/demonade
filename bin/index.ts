@@ -1,37 +1,19 @@
 #!/usr/bin/env node
-
-import { createCliLogger } from '@block65/logger';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { resolveConfig, ResolvedConfig } from '../lib/config.js';
+import { resolveConfig, InternalConfig } from '../lib/config.js';
 import { startProcess } from '../lib/process.js';
 import { debounce } from '../lib/utils.js';
 import { startWatcher } from '../lib/watcher.js';
+import { logger } from './logger.js';
 
-const logger = createCliLogger({
-  level: 'trace',
-  traceCaller: false,
-});
-
-async function start(config: ResolvedConfig) {
-  if (config.logLevel) {
-    logger.level = config.logLevel;
-  }
-
+async function start(config: InternalConfig) {
   logger.info('Starting...');
   logger.trace({ config }, 'resolved config');
 
-  const killSignal = config.signal || 'SIGUSR2';
-  const spawnOptions = {
-    logger,
-    killSignal,
-  };
-
   let [watcher, controller] = await Promise.all([
-    startWatcher(config.include, config.exclude, {
-      logger,
-    }),
-    startProcess(config.command, config.args, spawnOptions),
+    startWatcher(config),
+    startProcess(config),
   ]);
 
   watcher.on(
@@ -39,12 +21,8 @@ async function start(config: ResolvedConfig) {
     debounce(async (event, path) => {
       logger.debug('fs event {%s: %s}', event, path);
       controller?.abort();
-      controller = await startProcess(
-        config.command,
-        config.args,
-        spawnOptions,
-      );
-    }, 200),
+      controller = await startProcess(config);
+    }, config.delay),
   );
 
   watcher.on('error', (err) => {
@@ -83,7 +61,7 @@ resolveConfig({
   args: cliArgs.args,
   command: cliArgs.command,
   signal: cliArgs.signal,
-  logLevel: cliArgs.verbose ? 'debug' : 'info',
+  verbose: cliArgs.verbose,
   // globs: argv.globs,
 })
   .then((config) => start(config))

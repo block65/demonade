@@ -1,33 +1,26 @@
-import { BaseLogger } from '@block65/logger';
-import { SpawnOptionsWithoutStdio, spawn } from 'node:child_process';
+import { spawn, SpawnOptionsWithoutStdio } from 'node:child_process';
+import { logger } from '../bin/logger.js';
+import { InternalConfig } from './config.js';
 
 export function startProcess(
-  command: string = 'node',
-  args: string[] = [],
-  options: SpawnOptionsWithoutStdio & { logger?: BaseLogger } = {},
+  config: InternalConfig,
+  options?: SpawnOptionsWithoutStdio,
 ): Promise<AbortController> {
   return new Promise((resolve, reject) => {
     const controller = new AbortController();
 
-    options?.logger?.info('Spawning new process: %s %s', command, args);
+    logger?.info('Spawning new process: %s %s', config.command, config.args);
 
-    const subprocess = spawn(command, args, {
+    const subprocess = spawn(config.command, Array.from(config.args), {
       signal: controller.signal,
+      killSignal: config.signal,
       ...options,
     });
 
-    const childLogger = options.logger?.child({
-      name: command,
+    const childLogger = logger.child({
+      name: config.command,
       pid: subprocess.pid,
     });
-
-    // subprocess.stdout.on("data", (data) => {
-    //   childLogger.trace(`stdout: %s`, data);
-    // });
-    //
-    // subprocess.stderr.on("data", (data) => {
-    //   childLogger.trace(`stderr: %s`, data);
-    // });
 
     subprocess.stdout.pipe(process.stdout);
     subprocess.stderr.pipe(process.stderr);

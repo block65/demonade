@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`configs Full fat 1`] = `
+Object {
+  "args": Array [
+    "-c",
+    "hello",
+  ],
+  "command": "woot",
+  "delay": 12,
+  "exclude": Array [
+    "node_modules",
+  ],
+  "include": Set {
+    "../../..",
+    "",
+  },
+  "signal": "SIGABRT",
+  "workingDirectory": Any<String>,
+}
+`;

@@ -1,5 +1,19 @@
-import { test, expect } from '@jest/globals';
+import { describe, expect, test } from '@jest/globals';
+import { resolveConfig } from '../lib/config.js';
 
-test('Basic', async () => {
-  expect(true).toBe(true);
+describe('configs', () => {
+  test('Full fat', async () => {
+    await expect(
+      resolveConfig({
+        args: ['-c', 'hello'],
+        command: 'woot',
+        exclude: ['node_modules'],
+        include: ['dist/**/*.js'],
+        delay: 12,
+        signal: 'SIGABRT',
+      }),
+    ).resolves.toMatchSnapshot<any>({
+      workingDirectory: expect.any(String),
+    });
+  });
 });
