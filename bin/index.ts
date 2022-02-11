@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { CustomError } from '@block65/custom-error';
 import { createCliLogger } from '@block65/logger';
 import { SpawnOptionsWithoutStdio } from 'child_process';

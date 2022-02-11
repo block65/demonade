@@ -4,7 +4,7 @@
   "private": false,
   "license": "MIT",
   "sideEffects": false,
-  "//type": "module",
+  "type": "module",
   "exports": {
     ".": "./lib/index.js"
   },
