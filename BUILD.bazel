@@ -37,6 +37,8 @@ DEPS = [
     "@npm//yargs",
     "@npm//lilconfig",
     "@npm//chokidar",
+    "@npm//find-up",
+    "@npm//ignore",
 ]
 
 # deps used just for test srcs (ie dev deps)
