@@ -6,13 +6,17 @@
   "sideEffects": false,
   "//type": "module",
   "exports": {
-    "./": "./dist/lib/index.js"
+    ".": "./lib/index.js"
   },
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "bin": {
-    "demonade": "./dist/bin/index.js"
+    "demonade": "./bin/index.js"
   },
   "files": [
-    "dist/**/*.js",
+    "lib/*.js",
+    "lib/*.d.ts",
+    "CREDITS.md",
     "LICENSE.md"
   ],
   "scripts": {
