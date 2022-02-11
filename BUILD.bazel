@@ -18,7 +18,7 @@ exports_files(
 )
 
 SRCS = glob(
-    ["lib/*.ts"],
+    ["lib/*.ts", "bin/*.ts"],
 )
 
 TEST_SRCS = glob(
