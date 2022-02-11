@@ -14,6 +14,7 @@
     "demonade": "./bin/index.js"
   },
   "files": [
+    "bin/*.js",
     "lib/*.js",
     "lib/*.d.ts",
     "CREDITS.md",
