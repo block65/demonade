@@ -33,6 +33,9 @@ class ConfigError extends CustomError {
   public code = Status.INVALID_ARGUMENT;
 }
 
+const ig = ignore();
+ig.add(['.*']);
+
 export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
   const result = await lilconfig('demonade').search();
 
@@ -48,19 +51,6 @@ export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
     });
   }
 
-  const ig = ignore();
-
-  // const gitIgnore = await findUp('.gitignore', {
-  //   type: 'file',
-  //   allowSymlinks: false,
-  // });
-  //
-  // if (gitIgnore) {
-  //   ig.add((await readFile(gitIgnore)).toString());
-  // }
-
-  ig.add(['.git', 'bazel-out']);
-
   const packageJson = await findUp('package.json', {
     type: 'file',
     allowSymlinks: false,
@@ -72,10 +62,9 @@ export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
     : packageDir;
 
   const include = new Set(
-    [
-      ...(result?.config?.include || cliArgs?.include || []),
-      workingDirectory,
-    ].map((p) => relative(p, workingDirectory)),
+    [...(result?.config?.include || cliArgs?.include || []), workingDirectory]
+      .map((p) => relative(p, workingDirectory) || '.')
+      .filter(Boolean),
   );
 
   if (result?.config?.logLevel) {
@@ -86,6 +75,21 @@ export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
     logger.level = 'debug';
   }
 
+  function defaultExclude(path: string) {
+    const rel = relative(workingDirectory, path);
+
+    if (!rel) {
+      return false;
+    }
+
+    try {
+      return ig.ignores(rel);
+    } catch (err) {
+      logger.warn({ path, rel, err });
+      return false;
+    }
+  }
+
   return {
     command: result?.config?.command || cliArgs?.command || 'node',
     args: result?.config?.args || cliArgs?.args || [],
@@ -93,22 +97,6 @@ export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
     delay: result?.config?.delay || cliArgs?.delay || 200,
     include,
     workingDirectory,
-    exclude: result?.config?.exclude ||
-      cliArgs?.exclude || [
-        (path: string) => {
-          const rel = relative(workingDirectory, path);
-
-          if (!rel) {
-            return false;
-          }
-
-          try {
-            return ig.ignores(rel);
-          } catch (err) {
-            logger.warn({ path, rel, err });
-            return false;
-          }
-        },
-      ],
+    exclude: result?.config?.exclude || cliArgs?.exclude || [defaultExclude],
   };
 }

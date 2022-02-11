@@ -3,11 +3,15 @@ import { logger } from '../bin/logger.js';
 import { InternalConfig } from './config.js';
 
 export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
-  logger.info('Watching [%s] from %s', config.include, config.workingDirectory);
+  const include = Array.from(config.include);
+  const exclude = config.exclude && Array.from(config.exclude);
 
-  const watcher = watch(Array.from(config.include), {
+  logger.info('Watching [%s] from %s', include, config.workingDirectory);
+  logger.debug('Excluded [%s] from %s', exclude, config.workingDirectory);
+
+  const watcher = watch(include, {
     cwd: config.workingDirectory,
-    ignored: config.exclude && Array.from(config.exclude),
+    ignored: exclude,
     ignorePermissionErrors: true,
   });
 

@@ -13,7 +13,7 @@ Object {
   ],
   "include": Set {
     "../../..",
-    "",
+    ".",
   },
   "signal": "SIGABRT",
   "workingDirectory": Any<String>,
