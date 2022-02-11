@@ -9,7 +9,7 @@ export function startProcess(
   return new Promise((resolve, reject) => {
     const controller = new AbortController();
 
-    logger?.info('Spawning new process: %s %s', config.command, config.args);
+    logger.info('Spawning new process: %s %s', config.command, config.args);
 
     const subprocess = spawn(config.command, Array.from(config.args), {
       signal: controller.signal,
@@ -19,6 +19,7 @@ export function startProcess(
 
     const childLogger = logger.child({
       name: config.command,
+      args: config.args,
       pid: subprocess.pid,
     });
 
@@ -26,18 +27,20 @@ export function startProcess(
     subprocess.stderr.pipe(process.stderr);
 
     subprocess.on('close', (code, signal) => {
-      childLogger?.trace({ code, signal }, 'subprocess closed');
+      childLogger.trace({ code, signal }, 'subprocess closed');
     });
 
     subprocess.on('spawn', () => {
-      childLogger?.trace('subprocess spawned');
+      childLogger.trace('subprocess spawned');
       resolve(controller);
     });
 
     subprocess.on('error', (err: NodeJS.ErrnoException) => {
       if (err.code !== 'ABORT_ERR') {
-        childLogger?.error(err, 'subprocess errored');
+        childLogger.error(err, 'subprocess errored');
         reject(err);
+      } else {
+        childLogger.debug(err, 'subprocess aborted');
       }
     });
   });

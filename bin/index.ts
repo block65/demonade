@@ -8,9 +8,6 @@ import { startWatcher } from '../lib/watcher.js';
 import { logger } from './logger.js';
 
 async function start(config: InternalConfig) {
-  logger.info('Starting...');
-  logger.trace({ config }, 'resolved config');
-
   let [watcher, controller] = await Promise.all([
     startWatcher(config),
     startProcess(config),

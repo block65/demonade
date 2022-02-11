@@ -90,7 +90,7 @@ export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
     }
   }
 
-  return {
+  const config: InternalConfig = {
     command: result?.config?.command || cliArgs?.command || 'node',
     args: result?.config?.args || cliArgs?.args || [],
     signal: result?.config?.signal || cliArgs?.signal || 'SIGUSR2',
@@ -99,4 +99,8 @@ export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
     workingDirectory,
     exclude: result?.config?.exclude || cliArgs?.exclude || [defaultExclude],
   };
+
+  logger.trace(config, 'resolved config');
+
+  return config;
 }
