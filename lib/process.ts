@@ -2,12 +2,14 @@ import { BaseLogger } from '@block65/logger';
 import { SpawnOptionsWithoutStdio, spawn } from 'node:child_process';
 
 export function startProcess(
-  command: string,
+  command: string = 'node',
   args: string[] = [],
   options: SpawnOptionsWithoutStdio & { logger?: BaseLogger } = {},
 ): Promise<AbortController> {
   return new Promise((resolve, reject) => {
     const controller = new AbortController();
+
+    options?.logger?.info('Spawning new process: %s %s', command, args);
 
     const subprocess = spawn(command, args, {
       signal: controller.signal,

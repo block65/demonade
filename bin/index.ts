@@ -1,69 +1,36 @@
 #!/usr/bin/env node
 
-import { CustomError } from '@block65/custom-error';
 import { createCliLogger } from '@block65/logger';
-import { SpawnOptionsWithoutStdio } from 'child_process';
-import { lilconfig } from 'lilconfig';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import { resolveConfig, ResolvedConfig } from '../lib/config.js';
 import { startProcess } from '../lib/process.js';
 import { debounce } from '../lib/utils.js';
 import { startWatcher } from '../lib/watcher.js';
-
-interface ResolvedConfig {
-  command: string;
-  args?: string[];
-  globs: string[];
-  signal?: NodeJS.Signals;
-}
-
-export type Config = Partial<ResolvedConfig>;
 
 const logger = createCliLogger({
   level: 'trace',
   traceCaller: false,
 });
 
-class ConfigError extends CustomError {}
-
-async function resolveConfig(
-  cliArgs: Partial<ResolvedConfig>,
-): Promise<ResolvedConfig> {
-  const result = await lilconfig('myapp').search(); // Promise<LilconfigResult>
-
-  if (
-    !cliArgs.command &&
-    !cliArgs.args &&
-    !result?.config.command &&
-    !result?.config.args
-  ) {
-    throw new ConfigError('Must provide either a command or arguments').debug({
-      config: result?.config,
-      cliArgs,
-    });
+async function start(config: ResolvedConfig) {
+  if (config.logLevel) {
+    logger.level = config.logLevel;
   }
 
-  const configCandidate = {
-    command: result?.config?.command || cliArgs?.command || 'node',
-    args: result?.config?.args || cliArgs?.args,
-    signal: result?.config?.signal || cliArgs?.signal,
-    globs: ['*/*'],
-  };
-
-  return configCandidate;
-}
-
-async function start(config: ResolvedConfig) {
   logger.info('Starting...');
   logger.trace({ config }, 'resolved config');
 
   const killSignal = config.signal || 'SIGUSR2';
-  const spawnOptions: SpawnOptionsWithoutStdio = {
+  const spawnOptions = {
+    logger,
     killSignal,
   };
 
   let [watcher, controller] = await Promise.all([
-    startWatcher(config.globs),
+    startWatcher(config.include, config.exclude, {
+      logger,
+    }),
     startProcess(config.command, config.args, spawnOptions),
   ]);
 
@@ -77,7 +44,7 @@ async function start(config: ResolvedConfig) {
         config.args,
         spawnOptions,
       );
-    }, 250),
+    }, 200),
   );
 
   watcher.on('error', (err) => {
@@ -92,17 +59,31 @@ const cliArgs = yargs(hideBin(process.argv))
       alias: 'c',
       type: 'string',
       description: 'Command to run',
-    }).positional('args', {
-      type: 'string',
-      array: true,
-      description: 'Arguments to pass to command',
-    });
+    })
+      .option('verbose', {
+        alias: 'v',
+        type: 'boolean',
+        description: 'Verbose output',
+      })
+      .alias('command', 'exec')
+      .option('signal', {
+        alias: 's',
+        type: 'string',
+        description: 'Signal to send the process',
+      })
+      .positional('args', {
+        type: 'string',
+        array: true,
+        description: 'Arguments to pass to command',
+      });
   })
   .help().argv as any;
 
 resolveConfig({
   args: cliArgs.args,
   command: cliArgs.command,
+  signal: cliArgs.signal,
+  logLevel: cliArgs.verbose ? 'debug' : 'info',
   // globs: argv.globs,
 })
   .then((config) => start(config))

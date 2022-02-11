@@ -37,6 +37,8 @@
     "@block65/custom-error": "^8.0.0",
     "@block65/logger": "^8.1.1",
     "chokidar": "^3.5.3",
+    "find-up": "^6.3.0",
+    "ignore": "^5.2.0",
     "lilconfig": "^2.0.4",
     "yargs": "^17.3.1"
   },
