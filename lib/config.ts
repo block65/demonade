@@ -10,19 +10,29 @@ import { logger } from './logger.js';
  */
 export interface InternalConfig {
   command: string;
-  args: Set<string>;
-  include: Set<string>;
-  exclude?: Set<string | RegExp | ((path: string) => boolean)>;
+  args: string[];
+  include: string[];
+  exclude?: (path: string) => boolean;
   workingDirectory: string;
   signal: NodeJS.Signals;
   delay: number;
+}
+
+export interface CliConfig {
+  command?: string;
+  args?: string[];
+  signal?: NodeJS.Signals;
+  include?: string[];
+  exclude?: string[];
+  verbose?: boolean;
+  delay?: number;
 }
 
 export interface Config {
   command?: string;
   args?: string[];
   include?: string[];
-  exclude?: string[];
+  exclude?: (string | RegExp | ((path: string) => boolean))[];
   signal?: NodeJS.Signals;
   verbose?: boolean;
   delay?: number;
@@ -38,26 +48,28 @@ function minimatchWithLogger(path: string, glob: string) {
   return matched;
 }
 
-export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
+export async function resolveConfig(
+  cliConfig: CliConfig,
+): Promise<InternalConfig> {
   const result = await lilconfig('demonade').search();
 
   if (result?.config?.logLevel) {
     logger.level = result?.config?.logLevel;
   }
 
-  if (cliArgs?.verbose) {
+  if (cliConfig?.verbose) {
     logger.level = 'debug';
   }
 
   if (
-    !cliArgs.command &&
-    !cliArgs.args &&
+    !cliConfig.command &&
+    !cliConfig.args &&
     !result?.config.command &&
     !result?.config.args
   ) {
     throw new ConfigError('Provide either `command` or `args`').debug({
       config: result?.config,
-      cliArgs,
+      cliArgs: cliConfig,
     });
   }
 
@@ -72,45 +84,62 @@ export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
     : packageDir;
 
   const include = [
-    ...(result?.config?.include || cliArgs?.include || []),
-    workingDirectory,
+    ...new Set<string>(
+      result?.config?.include || cliConfig?.include || [workingDirectory],
+    ),
   ]
-    .map((p) => relative(p, workingDirectory) || '.')
+    .map((p) => relative(workingDirectory, p) || '.')
     .filter(Boolean);
 
-  const exclude: string[] | undefined = (
-    result?.config?.exclude || cliArgs?.exclude
-  )?.filter(Boolean);
+  const exclude: (string | RegExp | ((path: string) => boolean))[] = [
+    ...(result?.config?.exclude || []),
+    ...(cliConfig?.exclude || []),
+  ].filter(Boolean);
 
   const defaultExcludeGlobs = ['.*', 'node_modules'];
 
-  const config: InternalConfig = {
-    command: result?.config?.command || cliArgs?.command || process.execPath,
-    args: result?.config?.args || cliArgs?.args || [],
-    signal: result?.config?.signal || cliArgs?.signal || 'SIGUSR2',
-    delay: result?.config?.delay || cliArgs?.delay || 200,
-    include: new Set(include),
+  const resolved: InternalConfig = {
+    command: result?.config?.command || cliConfig?.command || process.execPath,
+    args: result?.config?.args || cliConfig?.args || [],
+    signal: result?.config?.signal || cliConfig?.signal || 'SIGUSR2',
+    delay: result?.config?.delay || cliConfig?.delay || 200,
     workingDirectory,
-    exclude: new Set([
-      (absPath: string) => {
-        const path = relative(workingDirectory, absPath);
-        // if config says include it, don't exclude it
-        if (include?.some((glob) => minimatchWithLogger(path, glob))) {
-          return false;
-        }
-        // if config says exclude it, exclude it
-        if (exclude?.some((glob) => minimatchWithLogger(path, glob))) {
-          return true;
-        }
-        // otherwise default
-        return defaultExcludeGlobs.some((glob) =>
-          minimatchWithLogger(path, glob),
-        );
-      },
-    ]),
+    include,
+    exclude: (absPath: string) => {
+      const path = relative(workingDirectory, absPath);
+      // if config says include it, don't exclude it
+      if (include?.some((glob) => minimatchWithLogger(path, glob))) {
+        return false;
+      }
+      // if config says exclude it, exclude it
+      if (
+        exclude?.some((glob) => {
+          if (glob instanceof RegExp) {
+            return path.match(glob);
+          }
+          if (typeof glob === 'function') {
+            return glob(path);
+          }
+          return minimatchWithLogger(path, glob);
+        })
+      ) {
+        return true;
+      }
+      // otherwise default
+      return defaultExcludeGlobs.some((glob) =>
+        minimatchWithLogger(path, glob),
+      );
+    },
   };
 
-  logger.trace({ config, cliArgs }, 'resolved config');
+  logger.trace(
+    {
+      cliConfig,
+      resolved,
+      include: [...resolved.include],
+    },
+    'resolved config',
+  );
 
-  return config;
+  return resolved;
 }

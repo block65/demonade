@@ -8,13 +8,10 @@ Object {
   ],
   "command": "woot",
   "delay": 12,
-  "exclude": Set {
-    [Function],
-  },
-  "include": Set {
-    "../../..",
-    ".",
-  },
+  "exclude": [Function],
+  "include": Array [
+    "dist/**/*.js",
+  ],
   "signal": "SIGABRT",
   "workingDirectory": Any<String>,
 }

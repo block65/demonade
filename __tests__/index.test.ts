@@ -11,6 +11,7 @@ describe('configs', () => {
         include: ['dist/**/*.js'],
         delay: 12,
         signal: 'SIGABRT',
+        verbose: true,
       }),
     ).resolves.toMatchSnapshot<any>({
       workingDirectory: expect.any(String),
