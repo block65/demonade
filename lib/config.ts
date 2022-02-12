@@ -1,10 +1,9 @@
 import { CustomError, Status } from '@block65/custom-error';
-import { BaseLogger } from '@block65/logger';
 import { findUp } from 'find-up';
-import ignore from 'ignore';
 import { lilconfig } from 'lilconfig';
+import minimatch from 'minimatch';
 import { dirname, relative } from 'node:path';
-import { logger } from '../bin/logger.js';
+import { logger } from './logger.js';
 
 /**
  * @private
@@ -13,7 +12,7 @@ export interface InternalConfig {
   command: string;
   args: Set<string>;
   include: Set<string>;
-  exclude?: Set<string>;
+  exclude?: Set<string | RegExp | ((path: string) => boolean)>;
   workingDirectory: string;
   signal: NodeJS.Signals;
   delay: number;
@@ -33,11 +32,22 @@ class ConfigError extends CustomError {
   public code = Status.INVALID_ARGUMENT;
 }
 
-const ig = ignore();
-ig.add(['.*']);
+function minimatchWithLogger(path: string, glob: string) {
+  const matched = minimatch(path, glob);
+  logger.trace('%s : %s = %s', path, glob, matched);
+  return matched;
+}
 
 export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
   const result = await lilconfig('demonade').search();
+
+  if (result?.config?.logLevel) {
+    logger.level = result?.config?.logLevel;
+  }
+
+  if (cliArgs?.verbose) {
+    logger.level = 'debug';
+  }
 
   if (
     !cliArgs.command &&
@@ -61,43 +71,39 @@ export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
     ? dirname(result?.filepath)
     : packageDir;
 
-  const include = new Set(
-    [...(result?.config?.include || cliArgs?.include || []), workingDirectory]
-      .map((p) => relative(p, workingDirectory) || '.')
-      .filter(Boolean),
-  );
+  const include = [
+    ...(result?.config?.include || cliArgs?.include || []),
+    workingDirectory,
+  ]
+    .map((p) => relative(p, workingDirectory) || '.')
+    .filter(Boolean);
 
-  if (result?.config?.logLevel) {
-    logger.level = result?.config?.logLevel;
-  }
+  const exclude: string[] | undefined = (
+    result?.config?.exclude || cliArgs?.exclude
+  )?.filter(Boolean);
 
-  if (cliArgs?.verbose) {
-    logger.level = 'debug';
-  }
-
-  function defaultExclude(path: string) {
-    const rel = relative(workingDirectory, path);
-
-    if (!rel) {
-      return false;
-    }
-
-    try {
-      return ig.ignores(rel);
-    } catch (err) {
-      logger.warn({ path, rel, err });
-      return false;
-    }
-  }
+  const defaultExcludeGlobs = ['.*', 'node_modules'];
 
   const config: InternalConfig = {
-    command: result?.config?.command || cliArgs?.command || 'node',
+    command: result?.config?.command || cliArgs?.command || process.execPath,
     args: result?.config?.args || cliArgs?.args || [],
     signal: result?.config?.signal || cliArgs?.signal || 'SIGUSR2',
     delay: result?.config?.delay || cliArgs?.delay || 200,
-    include,
+    include: new Set(include),
     workingDirectory,
-    exclude: result?.config?.exclude || cliArgs?.exclude || [defaultExclude],
+    exclude: new Set([
+      function defaultExclude(abs: string) {
+        const path = relative(workingDirectory, abs);
+        // if config says exclude it, exclude it
+        if (exclude?.some((glob) => minimatchWithLogger(path, glob))) {
+          return true;
+        }
+        // otherwise default
+        return defaultExcludeGlobs.some((glob) =>
+          minimatchWithLogger(path, glob),
+        );
+      },
+    ]),
   };
 
   logger.trace(config, 'resolved config');

@@ -8,9 +8,9 @@ Object {
   ],
   "command": "woot",
   "delay": 12,
-  "exclude": Array [
-    "node_modules",
-  ],
+  "exclude": Set {
+    [Function],
+  },
   "include": Set {
     "../../..",
     ".",

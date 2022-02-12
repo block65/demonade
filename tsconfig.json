@@ -5,6 +5,7 @@
     "target": "es2021",
     "module": "esnext",
     "moduleResolution": "node",
+    "esModuleInterop": true,
     "removeComments": true,
     "lib": [
       "es2021",

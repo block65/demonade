@@ -1,5 +1,5 @@
 import { spawn, SpawnOptionsWithoutStdio } from 'node:child_process';
-import { logger } from '../bin/logger.js';
+import { logger } from './logger.js';
 import { InternalConfig } from './config.js';
 
 export function startProcess(
@@ -9,7 +9,7 @@ export function startProcess(
   return new Promise((resolve, reject) => {
     const controller = new AbortController();
 
-    logger.info('Spawning new process: %s %s', config.command, config.args);
+    logger.debug('Spawning new process: %s [%s]', config.command, config.args);
 
     const subprocess = spawn(config.command, Array.from(config.args), {
       signal: controller.signal,
@@ -27,11 +27,11 @@ export function startProcess(
     subprocess.stderr.pipe(process.stderr);
 
     subprocess.on('close', (code, signal) => {
-      childLogger.trace({ code, signal }, 'subprocess closed');
+      childLogger.debug({ code, signal }, 'subprocess closed');
     });
 
     subprocess.on('spawn', () => {
-      childLogger.trace('subprocess spawned');
+      childLogger.debug('subprocess spawned');
       resolve(controller);
     });
 
@@ -40,7 +40,7 @@ export function startProcess(
         childLogger.error(err, 'subprocess errored');
         reject(err);
       } else {
-        childLogger.debug(err, 'subprocess aborted');
+        childLogger.trace(err, 'subprocess aborted');
       }
     });
   });

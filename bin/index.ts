@@ -5,7 +5,7 @@ import { resolveConfig, InternalConfig } from '../lib/config.js';
 import { startProcess } from '../lib/process.js';
 import { debounce } from '../lib/utils.js';
 import { startWatcher } from '../lib/watcher.js';
-import { logger } from './logger.js';
+import { logger } from '../lib/logger.js';
 
 async function start(config: InternalConfig) {
   let [watcher, controller] = await Promise.all([
@@ -22,10 +22,13 @@ async function start(config: InternalConfig) {
     }, config.delay),
   );
 
-  watcher.on('error', (err) => {
-    logger.error(err);
-    controller?.abort();
-  });
+  watcher.on(
+    'error',
+    debounce((err) => {
+      logger.error(err);
+      controller?.abort();
+    }, config.delay),
+  );
 }
 
 const cliArgs = yargs(hideBin(process.argv))

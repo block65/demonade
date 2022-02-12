@@ -1,13 +1,12 @@
 import { FSWatcher, watch } from 'chokidar';
-import { logger } from '../bin/logger.js';
+import { logger } from './logger.js';
 import { InternalConfig } from './config.js';
 
 export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
   const include = Array.from(config.include);
   const exclude = config.exclude && Array.from(config.exclude);
 
-  logger.info('Watching [%s] from %s', include, config.workingDirectory);
-  logger.debug('Excluded [%s] from %s', exclude, config.workingDirectory);
+  logger.debug('Watching [%s] from %s', include, config.workingDirectory);
 
   const watcher = watch(include, {
     cwd: config.workingDirectory,
@@ -22,7 +21,7 @@ export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
       const dirs = Object.keys(watched);
       const files = Object.values(watched).flatMap((f) => f);
 
-      logger.info(
+      logger.debug(
         'Watching %d files in %d directories',
         files.length,
         dirs.length,
