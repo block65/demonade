@@ -1,5 +1,5 @@
 let i = 0;
-setInterval(() => console.log((i += 3)), 1000);
+setInterval(() => console.log((i += 4)), 1000);
 
 process.once('exit', () => {
   console.log('ded');

@@ -42,12 +42,16 @@ const cliArgs = yargs(hideBin(process.argv))
         alias: 'v',
         type: 'boolean',
         description: 'Verbose output',
+        coerce: Boolean,
       })
       .alias('command', 'exec')
       .option('signal', {
         alias: 's',
         type: 'string',
         description: 'Signal to send the process',
+        coerce(arg: string[] | string) {
+          return Array.isArray(arg) ? arg.at(-1) : arg;
+        },
       })
       .positional('args', {
         type: 'string',

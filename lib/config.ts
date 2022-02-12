@@ -34,7 +34,7 @@ class ConfigError extends CustomError {
 
 function minimatchWithLogger(path: string, glob: string) {
   const matched = minimatch(path, glob);
-  logger.trace('%s : %s = %s', path, glob, matched);
+  logger.silent('%s : %s = %s', path, glob, matched);
   return matched;
 }
 
@@ -92,8 +92,12 @@ export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
     include: new Set(include),
     workingDirectory,
     exclude: new Set([
-      function defaultExclude(abs: string) {
-        const path = relative(workingDirectory, abs);
+      (absPath: string) => {
+        const path = relative(workingDirectory, absPath);
+        // if config says include it, don't exclude it
+        if (include?.some((glob) => minimatchWithLogger(path, glob))) {
+          return false;
+        }
         // if config says exclude it, exclude it
         if (exclude?.some((glob) => minimatchWithLogger(path, glob))) {
           return true;
@@ -106,7 +110,7 @@ export async function resolveConfig(cliArgs: Config): Promise<InternalConfig> {
     ]),
   };
 
-  logger.trace(config, 'resolved config');
+  logger.trace({ config, cliArgs }, 'resolved config');
 
   return config;
 }
