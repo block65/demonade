@@ -11,7 +11,7 @@ import { logger } from './logger.js';
 export interface InternalConfig {
   command: string;
   args: string[];
-  include: string[];
+  watch: string[];
   exclude?: (path: string) => boolean;
   workingDirectory: string;
   signal: NodeJS.Signals;
@@ -22,7 +22,7 @@ export interface CliConfig {
   command?: string;
   args?: string[];
   signal?: NodeJS.Signals;
-  include?: string[];
+  watch?: string[];
   exclude?: string[];
   verbose?: boolean;
   delay?: number;
@@ -31,7 +31,7 @@ export interface CliConfig {
 export interface Config {
   command?: string;
   args?: string[];
-  include?: string[];
+  watch?: string[];
   exclude?: (string | RegExp | ((path: string) => boolean))[];
   signal?: NodeJS.Signals;
   verbose?: boolean;
@@ -83,9 +83,9 @@ export async function resolveConfig(
     ? dirname(result?.filepath)
     : packageDir;
 
-  const include = [
+  const watch = [
     ...new Set<string>(
-      result?.config?.include || cliConfig?.include || [workingDirectory],
+      result?.config?.watch || cliConfig?.watch || [workingDirectory],
     ),
   ]
     .map((p) => relative(workingDirectory, p) || '.')
@@ -104,11 +104,11 @@ export async function resolveConfig(
     signal: result?.config?.signal || cliConfig?.signal || 'SIGUSR2',
     delay: result?.config?.delay || cliConfig?.delay || 200,
     workingDirectory,
-    include,
+    watch,
     exclude: (absPath: string) => {
       const path = relative(workingDirectory, absPath);
       // if config says include it, don't exclude it
-      if (include?.some((glob) => minimatchWithLogger(path, glob))) {
+      if (watch?.some((glob) => minimatchWithLogger(path, glob))) {
         return false;
       }
       // if config says exclude it, exclude it
@@ -136,7 +136,7 @@ export async function resolveConfig(
     {
       cliConfig,
       resolved,
-      include: [...resolved.include],
+      include: [...resolved.watch],
     },
     'resolved config',
   );

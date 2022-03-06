@@ -8,7 +8,7 @@ describe('configs', () => {
         args: ['-c', 'hello'],
         command: 'woot',
         exclude: ['node_modules'],
-        include: ['dist/**/*.js'],
+        watch: ['dist/**/*.js'],
         delay: 12,
         signal: 'SIGABRT',
         verbose: true,

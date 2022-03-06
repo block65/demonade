@@ -4,21 +4,12 @@
     "declaration": true,
     "target": "es2021",
     "module": "esnext",
+    "skipLibCheck": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
     "removeComments": true,
-    "lib": [
-      "es2021",
-      "dom"
-    ]
+    "lib": ["es2021", "dom"]
   },
-  "include": [
-    "./__tests__",
-    "./lib",
-    "./bin",
-  ],
-  "exclude": [
-    "./dist",
-    "node_modules"
-  ]
+  "include": ["./__tests__", "./lib", "./bin"],
+  "exclude": ["./dist", "node_modules"]
 }

@@ -3,7 +3,7 @@ import { logger } from './logger.js';
 import { InternalConfig } from './config.js';
 
 export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
-  const include = Array.from(config.include);
+  const include = Array.from(config.watch);
 
   logger.debug('Watching [%s] from %s', include, config.workingDirectory);
 
