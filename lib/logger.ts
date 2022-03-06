@@ -1,7 +1,6 @@
-import { createCliLogger, createLogger } from '@block65/logger';
+import { createLogger } from '@block65/logger';
 
-export const logger = process.env.SHELL
-  ? createLogger()
-  : createCliLogger({
-      traceCaller: false,
-    });
+export const logger = createLogger({
+  traceCaller: false,
+  prettyOptions: !!process.env.SHELL
+})
