@@ -9,10 +9,10 @@ Object {
   "command": "woot",
   "delay": 12,
   "exclude": [Function],
-  "include": Array [
+  "signal": "SIGABRT",
+  "watch": Array [
     "dist/**/*.js",
   ],
-  "signal": "SIGABRT",
   "workingDirectory": Any<String>,
 }
 `;
