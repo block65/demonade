@@ -38,13 +38,11 @@ DEPS = [
     "@npm//lilconfig",
     "@npm//chokidar",
     "@npm//find-up",
-    "@npm//minimatch",
 ]
 
 # deps used just for test srcs (ie dev deps)
 TEST_DEPS = [
     "@npm//@jest/globals",
-    "@npm//@types/minimatch",
 ]
 
 ts_project(

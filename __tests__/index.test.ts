@@ -7,11 +7,10 @@ describe('configs', () => {
       resolveConfig({
         args: ['-c', 'hello'],
         command: 'woot',
-        exclude: ['node_modules'],
+        ignore: ['node_modules'],
         watch: ['dist/**/*.js'],
         delay: 12,
         signal: 'SIGABRT',
-        verbose: true,
       }),
     ).resolves.toMatchSnapshot<any>({
       workingDirectory: expect.any(String),

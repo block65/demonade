@@ -3,13 +3,18 @@ import { logger } from './logger.js';
 import { InternalConfig } from './config.js';
 
 export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
-  const include = Array.from(config.watch);
+  const paths = config.watch;
 
-  logger.debug('Watching [%s] from %s', include, config.workingDirectory);
+  logger.info(
+    { paths },
+    'Watching %s paths from %s',
+    paths.length,
+    config.workingDirectory,
+  );
 
-  const watcher = watch(include, {
+  const watcher = watch(config.watch, {
     cwd: config.workingDirectory,
-    ignored: config.exclude,
+    ignored: config.ignore,
     ignorePermissionErrors: true,
   });
 
@@ -20,13 +25,19 @@ export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
       const dirs = Object.keys(watched);
       const files = Object.values(watched).flatMap((f) => f);
 
-      logger.debug(
-        'Watching %d files in %d directories',
+      logger.info(
+        'Watching %d files and %d directories',
         files.length,
         dirs.length,
       );
-      resolve(watcher);
+
+      logger.trace({ files, dirs }, 'watched'), resolve(watcher);
     });
+
+    watcher.on('raw', (event, path, details) =>
+      logger.trace({ details }, 'watcher: %s for %s', event, path),
+    );
+
     watcher.on('error', reject);
   });
 }

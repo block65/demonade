@@ -9,39 +9,54 @@ export function startProcess(
   return new Promise((resolve, reject) => {
     const controller = new AbortController();
 
-    logger.debug('Spawning new process: %s [%s]', config.command, config.args);
+    logger.debug(
+      config,
+      'Spawning new process: %s [%s]',
+      config.command,
+      config.args,
+    );
 
-    const subprocess = spawn(config.command, Array.from(config.args), {
+    const subprocess = spawn(config.command, config.args, {
       signal: controller.signal,
       killSignal: config.signal,
       ...options,
     });
 
-    const childLogger = logger.child({
-      name: config.command,
-      args: config.args,
-      pid: subprocess.pid,
-    });
+    const childLogger = logger.child(
+      {
+        cmd: config.command,
+        args: config.args,
+        pid: subprocess.pid,
+      },
+      {
+        context: { name: 'subprocess' },
+      },
+    );
 
     subprocess.stdout.pipe(process.stdout);
     subprocess.stderr.pipe(process.stderr);
 
     subprocess.on('close', (code, signal) => {
-      childLogger.debug({ code, signal }, 'subprocess closed');
+      childLogger.trace({ code, signal }, 'closed');
     });
 
     subprocess.on('spawn', () => {
-      childLogger.debug('subprocess spawned');
+      childLogger.trace('spawned');
       resolve(controller);
     });
 
     subprocess.on('error', (err: NodeJS.ErrnoException) => {
-      if (err.code !== 'ABORT_ERR') {
+      if (err.code === 'ABORT_ERR') {
+        childLogger.trace('subprocess aborted');
+        resolve(controller);
+      } else {
         childLogger.error(err, 'subprocess errored');
         reject(err);
-      } else {
-        childLogger.trace(err, 'subprocess aborted');
       }
+    });
+
+    controller.signal.addEventListener('abort', () => {
+      subprocess.removeAllListeners();
     });
   });
 }

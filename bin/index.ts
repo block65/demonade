@@ -8,6 +8,8 @@ import { startWatcher } from '../lib/watcher.js';
 import { logger } from '../lib/logger.js';
 
 async function start(config: InternalConfig) {
+  logger.trace(config);
+
   let [watcher, controller] = await Promise.all([
     startWatcher(config),
     startProcess(config),
@@ -15,10 +17,11 @@ async function start(config: InternalConfig) {
 
   watcher.on(
     'all',
-    debounce(async (event, path) => {
-      logger.debug('fs event {%s: %s}', event, path);
-      controller?.abort();
-      controller = await startProcess(config);
+    debounce(async (eventName) => {
+      if (['add', 'change', 'unlink'].includes(eventName)) {
+        controller?.abort();
+        controller = await startProcess(config);
+      }
     }, config.delay),
   );
 
@@ -38,18 +41,20 @@ const cliArgs = yargs(hideBin(process.argv))
       type: 'string',
       description: 'Command to run',
     })
-      .option('verbose', {
-        alias: 'v',
-        type: 'boolean',
-        description: 'Verbose output',
-        coerce: Boolean,
+      .option('watch', {
+        alias: 'w',
+        type: 'string',
+        description: 'Glob patterns to watch',
+        coerce(arg: string[] | string): string[] {
+          return Array.isArray(arg) ? arg : [arg];
+        },
       })
       .alias('command', 'exec')
       .option('signal', {
         alias: 's',
         type: 'string',
         description: 'Signal to send the process',
-        coerce(arg: string[] | string) {
+        coerce(arg: string[] | string): string | undefined {
           return Array.isArray(arg) ? arg.at(-1) : arg;
         },
       })
@@ -65,7 +70,8 @@ resolveConfig({
   args: cliArgs.args,
   command: cliArgs.command,
   signal: cliArgs.signal,
-  verbose: cliArgs.verbose,
+  watch: cliArgs.watch,
+  // verbose: cliArgs.verbose,
   // globs: argv.globs,
 })
   .then((config) => start(config))

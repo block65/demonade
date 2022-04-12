@@ -8,7 +8,9 @@ Object {
   ],
   "command": "woot",
   "delay": 12,
-  "exclude": [Function],
+  "ignore": Array [
+    "node_modules",
+  ],
   "signal": "SIGABRT",
   "watch": Array [
     "dist/**/*.js",

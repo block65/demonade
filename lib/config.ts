@@ -1,7 +1,6 @@
 import { CustomError, Status } from '@block65/custom-error';
 import { findUp } from 'find-up';
 import { lilconfig } from 'lilconfig';
-import minimatch from 'minimatch';
 import { dirname, relative } from 'node:path';
 import { logger } from './logger.js';
 
@@ -12,7 +11,7 @@ export interface InternalConfig {
   command: string;
   args: string[];
   watch: string[];
-  exclude?: (path: string) => boolean;
+  ignore?: (string | RegExp | ((path: string) => boolean))[];
   workingDirectory: string;
   signal: NodeJS.Signals;
   delay: number;
@@ -23,8 +22,8 @@ export interface CliConfig {
   args?: string[];
   signal?: NodeJS.Signals;
   watch?: string[];
-  exclude?: string[];
-  verbose?: boolean;
+  ignore?: string[];
+  // verbose?: boolean;
   delay?: number;
 }
 
@@ -32,9 +31,9 @@ export interface Config {
   command?: string;
   args?: string[];
   watch?: string[];
-  exclude?: (string | RegExp | ((path: string) => boolean))[];
+  ignore?: (string | RegExp | ((path: string) => boolean))[];
   signal?: NodeJS.Signals;
-  verbose?: boolean;
+  // verbose?: boolean;
   delay?: number;
 }
 
@@ -42,33 +41,19 @@ class ConfigError extends CustomError {
   public code = Status.INVALID_ARGUMENT;
 }
 
-function minimatchWithLogger(path: string, glob: string) {
-  const matched = minimatch(path, glob);
-  logger.silent('%s : %s = %s', path, glob, matched);
-  return matched;
-}
-
 export async function resolveConfig(
   cliConfig: CliConfig,
 ): Promise<InternalConfig> {
-  const result = await lilconfig('demonade').search();
-
-  if (result?.config?.logLevel) {
-    logger.level = result?.config?.logLevel;
-  }
-
-  if (cliConfig?.verbose) {
-    logger.level = 'debug';
-  }
+  const configResult = await lilconfig('demonade').search();
 
   if (
     !cliConfig.command &&
     !cliConfig.args &&
-    !result?.config.command &&
-    !result?.config.args
+    !configResult?.config.command &&
+    !configResult?.config.args
   ) {
     throw new ConfigError('Provide either `command` or `args`').debug({
-      config: result?.config,
+      config: configResult?.config,
       cliArgs: cliConfig,
     });
   }
@@ -79,64 +64,42 @@ export async function resolveConfig(
   });
   const packageDir = dirname(packageJson || process.cwd());
 
-  const workingDirectory = result?.filepath
-    ? dirname(result?.filepath)
+  const workingDirectory = configResult?.filepath
+    ? dirname(configResult?.filepath)
     : packageDir;
 
   const watch = [
     ...new Set<string>(
-      result?.config?.watch || cliConfig?.watch || [workingDirectory],
+      configResult?.config?.watch || cliConfig?.watch || [workingDirectory],
     ),
   ]
     .map((p) => relative(workingDirectory, p) || '.')
     .filter(Boolean);
 
-  const exclude: (string | RegExp | ((path: string) => boolean))[] = [
-    ...(result?.config?.exclude || []),
-    ...(cliConfig?.exclude || []),
+  const configIgnore: (string | RegExp | ((path: string) => boolean))[] = [
+    ...(configResult?.config?.ignore || []),
+    ...(cliConfig?.ignore || []),
   ].filter(Boolean);
 
-  const defaultExcludeGlobs = ['.*', 'node_modules'];
+  const defaultIgnore = [/(^|[/\\])\../, '**/node_modules/**'];
+
+  const ignore = configIgnore.length > 0 ? configIgnore : defaultIgnore;
 
   const resolved: InternalConfig = {
-    command: result?.config?.command || cliConfig?.command || process.execPath,
-    args: result?.config?.args || cliConfig?.args || [],
-    signal: result?.config?.signal || cliConfig?.signal || 'SIGUSR2',
-    delay: result?.config?.delay || cliConfig?.delay || 200,
+    command:
+      configResult?.config?.command || cliConfig?.command || process.execPath,
+    args: configResult?.config?.args || cliConfig?.args || [],
+    signal: configResult?.config?.signal || cliConfig?.signal || 'SIGUSR2',
+    delay: configResult?.config?.delay || cliConfig?.delay || 200,
     workingDirectory,
     watch,
-    exclude: (absPath: string) => {
-      const path = relative(workingDirectory, absPath);
-      // if config says include it, don't exclude it
-      if (watch?.some((glob) => minimatchWithLogger(path, glob))) {
-        return false;
-      }
-      // if config says exclude it, exclude it
-      if (
-        exclude?.some((glob) => {
-          if (glob instanceof RegExp) {
-            return path.match(glob);
-          }
-          if (typeof glob === 'function') {
-            return glob(path);
-          }
-          return minimatchWithLogger(path, glob);
-        })
-      ) {
-        return true;
-      }
-      // otherwise default
-      return defaultExcludeGlobs.some((glob) =>
-        minimatchWithLogger(path, glob),
-      );
-    },
+    ignore,
   };
 
   logger.trace(
     {
       cliConfig,
       resolved,
-      include: [...resolved.watch],
     },
     'resolved config',
   );
