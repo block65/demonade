@@ -3,12 +3,10 @@ import { logger } from './logger.js';
 import { InternalConfig } from './config.js';
 
 export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
-  const paths = config.watch;
-
   logger.info(
-    { paths },
+    config.watch,
     'Watching %s paths from %s',
-    paths.length,
+    config.watch.length,
     config.workingDirectory,
   );
 
@@ -16,27 +14,29 @@ export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
     cwd: config.workingDirectory,
     ignored: config.ignore,
     ignorePermissionErrors: true,
+    ignoreInitial: true, // we dont even resolve until ready fires
   });
 
   return new Promise<FSWatcher>((resolve, reject) => {
     watcher.on('ready', () => {
       const watched = watcher.getWatched();
 
-      const dirs = Object.keys(watched);
-      const files = Object.values(watched).flatMap((f) => f);
+      const paths = Object.values(watched).flatMap((f) => f);
 
-      logger.info(
-        'Watching %d files and %d directories',
-        files.length,
-        dirs.length,
-      );
+      logger.info('Watching %d paths', paths.length);
 
-      logger.trace({ files, dirs }, 'watched'), resolve(watcher);
+      resolve(watcher);
     });
 
-    watcher.on('raw', (event, path, details) =>
-      logger.trace({ details }, 'watcher: %s for %s', event, path),
-    );
+    // watcher.on('raw', (event, path, details) =>
+    //
+    // );
+
+    watcher.on('all', (eventName, path) => {
+      if (['add', 'change', 'delete'].includes(eventName)) {
+        logger.trace('watcher: %s for %s', eventName, path);
+      }
+    });
 
     watcher.on('error', reject);
   });

@@ -15,6 +15,8 @@ export interface InternalConfig {
   workingDirectory: string;
   signal: NodeJS.Signals;
   delay: number;
+  quiet?: boolean;
+  verbose?: boolean;
 }
 
 export interface CliConfig {
@@ -23,7 +25,8 @@ export interface CliConfig {
   signal?: NodeJS.Signals;
   watch?: string[];
   ignore?: string[];
-  // verbose?: boolean;
+  quiet?: boolean;
+  verbose?: boolean;
   delay?: number;
 }
 
@@ -33,7 +36,8 @@ export interface Config {
   watch?: string[];
   ignore?: (string | RegExp | ((path: string) => boolean))[];
   signal?: NodeJS.Signals;
-  // verbose?: boolean;
+  quiet?: boolean;
+  verbose?: boolean;
   delay?: number;
 }
 
@@ -41,10 +45,19 @@ class ConfigError extends CustomError {
   public code = Status.INVALID_ARGUMENT;
 }
 
+function loadEsm(specifier: string) {
+  return import(specifier);
+}
+
 export async function resolveConfig(
   cliConfig: CliConfig,
 ): Promise<InternalConfig> {
-  const configResult = await lilconfig('demonade').search();
+  const configResult = await lilconfig('demonade', {
+    loaders: {
+      '.js': loadEsm,
+      '.mjs': loadEsm,
+    },
+  }).search();
 
   if (
     !cliConfig.command &&
@@ -69,16 +82,22 @@ export async function resolveConfig(
     : packageDir;
 
   const watch = [
-    ...new Set<string>(
-      configResult?.config?.watch || cliConfig?.watch || [workingDirectory],
-    ),
+    ...new Set<string>([
+      ...(configResult?.config?.watch || []),
+      ...(cliConfig?.watch || []),
+      ...(!configResult?.config?.watch && cliConfig?.watch
+        ? [workingDirectory]
+        : []),
+    ]),
   ]
-    .map((p) => relative(workingDirectory, p) || '.')
+    .map((p) => relative(workingDirectory, p))
     .filter(Boolean);
 
   const configIgnore: (string | RegExp | ((path: string) => boolean))[] = [
-    ...(configResult?.config?.ignore || []),
-    ...(cliConfig?.ignore || []),
+    ...new Set([
+      ...(configResult?.config?.ignore || []),
+      ...(cliConfig?.ignore || []),
+    ]),
   ].filter(Boolean);
 
   const defaultIgnore = [/(^|[/\\])\../, '**/node_modules/**'];
@@ -86,14 +105,16 @@ export async function resolveConfig(
   const ignore = configIgnore.length > 0 ? configIgnore : defaultIgnore;
 
   const resolved: InternalConfig = {
-    command:
-      configResult?.config?.command || cliConfig?.command || process.execPath,
-    args: configResult?.config?.args || cliConfig?.args || [],
-    signal: configResult?.config?.signal || cliConfig?.signal || 'SIGUSR2',
-    delay: configResult?.config?.delay || cliConfig?.delay || 200,
     workingDirectory,
     watch,
     ignore,
+    command:
+      cliConfig?.command || configResult?.config?.command || process.execPath,
+    args: cliConfig?.args || configResult?.config?.args || [],
+    signal: cliConfig?.signal || configResult?.config?.signal || 'SIGUSR2',
+    delay: cliConfig?.delay || configResult?.config?.delay || 200,
+    quiet: cliConfig?.quiet || configResult?.config?.quiet,
+    verbose: cliConfig?.verbose || configResult?.config?.verbose,
   };
 
   logger.trace(

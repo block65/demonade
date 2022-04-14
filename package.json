@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@block65/custom-error": "^8.0.0",
-    "@block65/logger": "^12.0.0-rc.13",
+    "@block65/logger": "^12.0.0-rc.14",
     "chokidar": "^3.5.3",
     "find-up": "^6.3.0",
     "lilconfig": "^2.0.5",

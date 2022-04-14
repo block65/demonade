@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import { Level } from '@block65/logger';
 import { resolveConfig, InternalConfig } from '../lib/config.js';
 import { startProcess } from '../lib/process.js';
 import { debounce } from '../lib/utils.js';
@@ -8,7 +9,11 @@ import { startWatcher } from '../lib/watcher.js';
 import { logger } from '../lib/logger.js';
 
 async function start(config: InternalConfig) {
-  logger.trace(config);
+  if (config.verbose) {
+    logger.setLevel(Level.Trace);
+  } else if (config.quiet) {
+    logger.setLevel(Level.Warn);
+  }
 
   let [watcher, controller] = await Promise.all([
     startWatcher(config),
@@ -18,7 +23,7 @@ async function start(config: InternalConfig) {
   watcher.on(
     'all',
     debounce(async (eventName) => {
-      if (['add', 'change', 'unlink'].includes(eventName)) {
+      if (['add', 'change', 'delete'].includes(eventName)) {
         controller?.abort();
         controller = await startProcess(config);
       }
@@ -41,6 +46,16 @@ const cliArgs = yargs(hideBin(process.argv))
       type: 'string',
       description: 'Command to run',
     })
+      .option('verbose', {
+        alias: 'v',
+        type: 'boolean',
+        description: 'Verbose logging (full debug output)',
+      })
+      .option('quiet', {
+        alias: 'q',
+        type: 'boolean',
+        description: 'Quiet logging (warnings and errors only)',
+      })
       .option('watch', {
         alias: 'w',
         type: 'string',
@@ -71,8 +86,8 @@ resolveConfig({
   command: cliArgs.command,
   signal: cliArgs.signal,
   watch: cliArgs.watch,
-  // verbose: cliArgs.verbose,
-  // globs: argv.globs,
+  verbose: cliArgs.verbose,
+  quiet: cliArgs.quiet,
 })
   .then((config) => start(config))
   .catch((err) => logger.error(err));
