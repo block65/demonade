@@ -64,6 +64,14 @@ const cliArgs = yargs(hideBin(process.argv))
           return Array.isArray(arg) ? arg : [arg];
         },
       })
+      .option('ignore', {
+        alias: 'i',
+        type: 'string',
+        description: 'Glob patterns to ignore',
+        coerce(arg: string[] | string): string[] {
+          return Array.isArray(arg) ? arg : [arg];
+        },
+      })
       .alias('command', 'exec')
       .option('signal', {
         alias: 's',
@@ -86,6 +94,7 @@ resolveConfig({
   command: cliArgs.command,
   signal: cliArgs.signal,
   watch: cliArgs.watch,
+  ignore: cliArgs.ignore,
   verbose: cliArgs.verbose,
   quiet: cliArgs.quiet,
 })
