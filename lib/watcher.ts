@@ -5,7 +5,7 @@ import { InternalConfig } from './config.js';
 export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
   logger.info(
     config.watch,
-    'Watching %s paths from %s',
+    'Starting %s watches from %s',
     config.watch.length,
     config.workingDirectory,
   );
