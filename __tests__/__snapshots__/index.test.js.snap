@@ -11,7 +11,9 @@ Object {
   "ignore": Array [
     "node_modules",
   ],
+  "quiet": undefined,
   "signal": "SIGABRT",
+  "verbose": undefined,
   "watch": Array [
     "dist/**/*.js",
   ],
