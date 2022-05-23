@@ -35,32 +35,32 @@
   },
   "dependencies": {
     "@block65/custom-error": "^8.0.0",
-    "@block65/logger": "^12.0.0-rc.14",
+    "@block65/logger": "^12.0.0",
     "chokidar": "^3.5.3",
     "find-up": "^6.3.0",
     "lilconfig": "^2.0.5",
-    "yargs": "^17.4.1"
+    "yargs": "^17.5.1"
   },
   "devDependencies": {
     "@bazel/bazelisk": "^1.11.0",
-    "@bazel/buildifier": "^5.0.1",
+    "@bazel/buildifier": "^5.1.0",
     "@bazel/ibazel": "^0.16.2",
-    "@bazel/typescript": "5.3.0",
+    "@bazel/typescript": "5.5.0",
     "@block65/eslint-config": "^7.0.4",
-    "@jest/globals": "^27.5.1",
+    "@jest/globals": "^28.1.0",
     "@types/node": "^16",
-    "@typescript-eslint/eslint-plugin": ">=5.19.0",
-    "@typescript-eslint/parser": ">=5.19.0",
-    "eslint": ">=8.13.0",
+    "@typescript-eslint/eslint-plugin": ">=5.25.0",
+    "@typescript-eslint/parser": ">=5.25.0",
+    "eslint": ">=8.16.0",
     "eslint-plugin-import": ">=2.26.0",
     "eslint-plugin-prettier": ">=4.0.0",
-    "jest": "^27.5.1",
+    "jest": "^28.1.0",
     "prettier": "^2.6.2",
     "rimraf": "^3.0.2",
-    "ts-node": "^10.7.0",
-    "typescript": ">=4.6.3"
+    "ts-node": "^10.8.0",
+    "typescript": "^4.7.1-rc"
   },
   "engines": {
-    "node": "^12.20.0 || ^14.13.1 || >=16.0.0"
+    "node": ">=16.0.0"
   }
 }
