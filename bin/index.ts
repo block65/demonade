@@ -40,6 +40,7 @@ async function start(config: InternalConfig) {
 }
 
 const cliArgs = yargs(hideBin(process.argv))
+  .parserConfiguration({ 'unknown-options-as-args': true })
   .command('$0 [args...]', '', (y) => {
     y.option('command', {
       alias: 'c',
