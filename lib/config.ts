@@ -1,7 +1,7 @@
+import { dirname, relative } from 'node:path';
 import { CustomError, Status } from '@block65/custom-error';
 import { findUp } from 'find-up';
 import { lilconfig } from 'lilconfig';
-import { dirname, relative } from 'node:path';
 import { logger } from './logger.js';
 
 /**
@@ -42,7 +42,7 @@ export interface Config {
 }
 
 class ConfigError extends CustomError {
-  public code = Status.INVALID_ARGUMENT;
+  public override code = Status.INVALID_ARGUMENT;
 }
 
 function loadEsm(specifier: string) {

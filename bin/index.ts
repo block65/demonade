@@ -1,12 +1,12 @@
 #!/usr/bin/env node
+import { Level } from '@block65/logger';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { Level } from '@block65/logger';
 import { resolveConfig, InternalConfig } from '../lib/config.js';
+import { logger } from '../lib/logger.js';
 import { startProcess } from '../lib/process.js';
 import { debounce } from '../lib/utils.js';
 import { startWatcher } from '../lib/watcher.js';
-import { logger } from '../lib/logger.js';
 
 async function start(config: InternalConfig) {
   if (config.verbose) {

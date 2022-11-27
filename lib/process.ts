@@ -1,6 +1,6 @@
 import { spawn, SpawnOptionsWithoutStdio } from 'node:child_process';
+import type { InternalConfig } from './config.js';
 import { logger } from './logger.js';
-import { InternalConfig } from './config.js';
 
 export function startProcess(
   config: InternalConfig,

@@ -1,6 +1,6 @@
 import { FSWatcher, watch } from 'chokidar';
+import type { InternalConfig } from './config.js';
 import { logger } from './logger.js';
-import { InternalConfig } from './config.js';
 
 export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
   logger.info(
@@ -12,9 +12,11 @@ export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
 
   const watcher = watch(config.watch, {
     cwd: config.workingDirectory,
-    ignored: config.ignore,
     ignorePermissionErrors: true,
     ignoreInitial: true, // we dont even resolve until ready fires
+    ...(config.ignore && {
+      ignored: config.ignore,
+    }),
   });
 
   return new Promise<FSWatcher>((resolve, reject) => {
