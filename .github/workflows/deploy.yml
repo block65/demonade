@@ -3,20 +3,20 @@ name: Deploy
 on:
   workflow_dispatch: {}
   release:
-    types: [ published ]
+    types: [published]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: bazelbuild/setup-bazelisk@v1
+      - uses: bazelbuild/setup-bazelisk@v2
 
-      - name: mount cache
-        uses: actions/cache@v2
+      - name: Mount bazel cache
+        uses: actions/cache@v3
         with:
-          path: "~/.cache/bazel-disk-cache" # this should match .bazelrc
+          path: '~/.cache/bazel-disk-cache' # this should match .bazelrc
           key: ${{ runner.os }}-bazel-disk-cache
 
       - name: test
@@ -28,12 +28,13 @@ jobs:
         run: bazel build //...
 
       - name: publish-setup
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: 16
           registry-url: https://registry.npmjs.org/
 
       - name: publish
-        run: bazel run //:pkg.publish
+        working-directory: dist/bin/pkg
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
