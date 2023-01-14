@@ -1,6 +1,9 @@
-load("@build_bazel_rules_nodejs//:index.bzl", "js_library", "pkg_npm")
-load("@npm//@bazel/typescript:index.bzl", "ts_project")
-load("//tools:jest.bzl", "jest_test")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+npm_link_all_packages()
 
 PACKAGE_NAMESPACE = "block65"
 
@@ -8,21 +11,18 @@ PACKAGE_NAME = "demonade"
 
 SCOPED_PACKAGE_NAME = "@%s/%s" % (PACKAGE_NAMESPACE, PACKAGE_NAME)
 
-# Allow any ts_library rules in this workspace to reference the config
-# See https://www.npmjs.com/package/@bazel/typescript#installation
-exports_files(
-    [
-        "tsconfig.json",
-    ],
-    visibility = ["//:__subpackages__"],
-)
-
 SRCS = glob(
-    ["lib/*.ts", "bin/*.ts"],
+    [
+        "lib/*.ts",
+        "bin/*.ts",
+    ],
 )
 
 TEST_SRCS = glob(
-    ["__tests__/**/*"],
+    [
+        "__tests__/**/*",
+        "tools/jest*",
+    ],
     exclude = ["__tests__/__snapshots__/*.snap"],
 )
 
@@ -31,57 +31,53 @@ TEST_SNAPSHOT_SRCS = glob(
 )
 
 DEPS = [
-    "@npm//@types/node",
-    "@npm//@block65/custom-error",
-    "@npm//@block65/logger",
-    "@npm//yargs",
-    "@npm//lilconfig",
-    "@npm//chokidar",
-    "@npm//find-up",
+    ":node_modules/@types/node",
+    ":node_modules/@block65/custom-error",
+    ":node_modules/@block65/logger",
+    ":node_modules/@types/yargs",
+    ":node_modules/yargs",
+    ":node_modules/lilconfig",
+    ":node_modules/chokidar",
+    ":node_modules/find-up",
+    ":node_modules/p-debounce",
 ]
 
 # deps used just for test srcs (ie dev deps)
 TEST_DEPS = [
-    "@npm//@jest/globals",
+    ":node_modules/@jest/globals",
 ]
 
 ts_project(
     name = "compiled",
-    srcs = SRCS + TEST_SRCS,
+    srcs = SRCS + TEST_SRCS + ["package.json"],
     declaration = True,
     deps = DEPS + TEST_DEPS,
 )
 
 jest_test(
     name = "unit",
-    srcs = [":compiled"] + [],
-    env = {
-        "NODE_OPTIONS": "--stack-trace-limit=3",
-    },
-    snapshots = TEST_SNAPSHOT_SRCS,
-    deps = DEPS + TEST_DEPS,
-)
-
-js_library(
-    name = "dist",
-    package_name = SCOPED_PACKAGE_NAME,
-    srcs = ["package.json"],
-    visibility = ["//:__subpackages__"],
-    deps = [
+    config = "jest.config.js",
+    data = [
         ":compiled",
+        "package.json",
+    ] + DEPS + TEST_DEPS,
+    log_level = "debug",
+    node_options = [
+        "--experimental-vm-modules",
+        "--stack-trace-limit=3",
     ],
+    snapshots = TEST_SNAPSHOT_SRCS,
 )
 
-pkg_npm(
+npm_package(
     name = "pkg",
-    package_name = SCOPED_PACKAGE_NAME,
     srcs = [
         "CREDITS.md",
         "LICENSE.md",
         "README.md",
         "package.json",
+        ":compiled",
     ],
-    deps = [
-        ":dist",
-    ],
+    package = SCOPED_PACKAGE_NAME,
+    visibility = ["//:__subpackages__"],
 )
