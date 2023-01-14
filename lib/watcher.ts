@@ -3,14 +3,16 @@ import type { InternalConfig } from './config.js';
 import { logger } from './logger.js';
 
 export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
+  const watches = config.watch.length === 0 ? ['.'] : config.watch;
+
   logger.info(
-    config.watch,
+    { watches },
     'Starting %s watches from %s',
-    config.watch.length,
+    watches.length,
     config.workingDirectory,
   );
 
-  const watcher = watch(config.watch, {
+  const watcher = watch(watches, {
     cwd: config.workingDirectory,
     ignorePermissionErrors: true,
     ignoreInitial: true, // we dont even resolve until ready fires
