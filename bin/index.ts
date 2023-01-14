@@ -39,6 +39,7 @@ async function start(config: InternalConfig) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const cliArgs = yargs(hideBin(process.argv))
   .parserConfiguration({ 'unknown-options-as-args': true })
   .command('$0 [args...]', '', (y) => {
