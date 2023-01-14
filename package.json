@@ -6,10 +6,11 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    ".": "./lib/index.js"
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
   },
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
   "bin": {
     "demonade": "./bin/index.js"
   },
