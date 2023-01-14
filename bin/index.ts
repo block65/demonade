@@ -73,6 +73,11 @@ const cliArgs = yargs(hideBin(process.argv))
           return Array.isArray(arg) ? arg : [arg];
         },
       })
+      .option('delay', {
+        alias: 'd',
+        type: 'number',
+        description: 'Delay before starting process',
+      })
       .alias('command', 'exec')
       .option('signal', {
         alias: 's',
