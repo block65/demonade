@@ -1,42 +1,52 @@
 #!/usr/bin/env node
 import { Level } from '@block65/logger';
+import pDebounce from 'p-debounce';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { resolveConfig, InternalConfig } from '../lib/config.js';
 import { logger } from '../lib/logger.js';
 import { startProcess } from '../lib/process.js';
-import { debounce } from '../lib/utils.js';
 import { startWatcher } from '../lib/watcher.js';
 
 async function start(config: InternalConfig) {
   if (config.verbose) {
-    logger.setLevel(Level.Trace);
+    logger.setLevel(Level.Debug);
   } else if (config.quiet) {
     logger.setLevel(Level.Warn);
   }
 
-  let [watcher, controller] = await Promise.all([
-    startWatcher(config),
-    startProcess(config),
-  ]);
+  const watcher = await startWatcher(config);
 
-  watcher.on(
-    'all',
-    debounce(async (eventName) => {
-      if (['add', 'change', 'delete'].includes(eventName)) {
-        controller?.abort();
-        controller = await startProcess(config);
+  let result = await startProcess(config);
+
+  const debouncedRestart = pDebounce(async () => {
+    // this will trigger the process to exist
+    result.controller?.abort();
+
+    // wait for subprocess to die
+    await new Promise<void>((resolve) => {
+      if (result.subprocess.exitCode !== null) {
+        // dead already?
+        resolve();
+      } else {
+        // just resolve when dead
+        result.subprocess.on('exit', resolve);
       }
-    }, config.delay),
-  );
+    });
 
-  watcher.on(
-    'error',
-    debounce((err) => {
-      logger.error(err);
-      controller?.abort();
-    }, config.delay),
-  );
+    result = await startProcess(config);
+  }, config.delay);
+
+  watcher.on('all', (eventName) => {
+    if (['add', 'change', 'delete'].includes(eventName)) {
+      debouncedRestart().catch(logger.warn);
+    }
+  });
+
+  watcher.on('error', (err) => {
+    logger.error(err);
+    result.controller?.abort();
+  });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
