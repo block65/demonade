@@ -24,8 +24,7 @@ export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
   return new Promise<FSWatcher>((resolve, reject) => {
     watcher.on('ready', () => {
       const watched = watcher.getWatched();
-
-      const paths = Object.values(watched).flatMap((f) => f);
+      const paths = Object.values(watched).flat();
 
       logger.info('Watching %d paths', paths.length);
 
