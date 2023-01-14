@@ -1,20 +1,20 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`configs Full fat 1`] = `
-Object {
-  "args": Array [
+{
+  "args": [
     "-c",
     "hello",
   ],
   "command": "woot",
   "delay": 12,
-  "ignore": Array [
+  "ignore": [
     "node_modules",
   ],
   "quiet": undefined,
   "signal": "SIGABRT",
   "verbose": undefined,
-  "watch": Array [
+  "watch": [
     "dist/**/*.js",
   ],
   "workingDirectory": Any<String>,
