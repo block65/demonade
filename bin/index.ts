@@ -90,7 +90,7 @@ const cliArgs = yargs(hideBin(process.argv))
   })
   .help().argv as any;
 
-resolveConfig({
+const config = await resolveConfig({
   args: cliArgs.args,
   command: cliArgs.command,
   signal: cliArgs.signal,
@@ -98,6 +98,7 @@ resolveConfig({
   ignore: cliArgs.ignore,
   verbose: cliArgs.verbose,
   quiet: cliArgs.quiet,
-})
-  .then((config) => start(config))
-  .catch((err) => logger.error(err));
+  delay: cliArgs.delay,
+});
+
+await start(config);
