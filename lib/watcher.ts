@@ -22,6 +22,8 @@ export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
   });
 
   return new Promise<FSWatcher>((resolve, reject) => {
+    watcher.on('error', reject);
+
     watcher.on('ready', () => {
       const watched = watcher.getWatched();
       const paths = Object.values(watched).flat();
@@ -29,18 +31,15 @@ export async function startWatcher(config: InternalConfig): Promise<FSWatcher> {
       logger.info('Watching %d paths', paths.length);
 
       resolve(watcher);
-    });
 
-    // watcher.on('raw', (event, path, details) =>
-    //
-    // );
+      // cant reject after resolved
+      watcher.off('error', reject);
+    });
 
     watcher.on('all', (eventName, path) => {
       if (['add', 'change', 'delete'].includes(eventName)) {
         logger.trace('watcher: %s for %s', eventName, path);
       }
     });
-
-    watcher.on('error', reject);
   });
 }
